@@ -8,3 +8,6 @@ venv/
 data/index.json
 data/feedback.jsonl
 .pytest_cache/
+
+# כלי פיתוח מקומיים
+.claude/

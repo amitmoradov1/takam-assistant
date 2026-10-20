@@ -62,8 +62,16 @@
     align-self: flex-end; background: var(--card);
     border: 1px solid var(--border); border-radius: 14px 14px 4px 14px;
     padding: 14px 18px; box-shadow: 0 1px 3px rgba(16,42,80,.07);
-    white-space: pre-wrap; width: 85%;
+    width: 85%;
   }
+  /* תשובת המודל מרונדרת כמבנה (פסקאות, תבליטים, הדגשות) — לא טקסט גולמי */
+  .answer p { margin: .4em 0; }
+  .answer ul, .answer ol { margin: .4em 0; padding-inline-start: 1.4em; }
+  .answer li { margin: .25em 0; }
+  .answer .ans-h {
+    font-weight: 700; color: var(--gov-blue); margin: .7em 0 .3em;
+  }
+  .answer strong { color: var(--gov-blue-dark); }
   .msg.bot .bot-tag {
     display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
     font-size: .78rem; color: var(--gov-blue); font-weight: 600;
@@ -134,7 +142,7 @@
     <div class="logo">תכ"ם</div>
     <div class="titles">
       <h1>תכ"ם-קל</h1>
-      <p>עוזר חכם להוראות התקנון הכספי והמשקי — תשובות עם הפניה מדויקת לסעיף</p>
+      <p>מוצאים תשובה בהוראות התכ"ם — עם ציטוט הסעיף המדויק וקישור לנוסח המחייב</p>
     </div>
     <span class="poc-badge">POC · מטלת בית</span>
   </div>
@@ -166,10 +174,10 @@ const EXAMPLES = [
 ];
 
 const MODE_LABELS = {
-  llm: "תשובה מנוסחת על בסיס ההוראות בלבד",
-  extractive: "מצב אחזור בלבד (לא הוגדר מפתח API)",
+  llm: "תשובה מנוסחת מתוך ההוראות שבמאגר בלבד",
+  extractive: "מוצגים סעיפי המקור עצמם (מודל השפה אינו זמין)",
   refused: "המודל סירב לענות",
-  no_results: "לא נמצאו מקורות",
+  no_results: "לא נמצאו סעיפים רלוונטיים במאגר",
 };
 
 const chatEl = document.getElementById("chat");
@@ -181,6 +189,48 @@ function el(tag, className, text) {
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+
+// --- רינדור בטוח של תשובת המודל ---
+// המודל עונה ב-Markdown קל (הדגשות, תבליטים, כותרות). מרנדרים את המבנה
+// הזה לאלמנטים אמיתיים, אך ורק דרך textContent — בלי innerHTML, כך שטקסט
+// שמקורו במסמכים שנאספו מהאינטרנט לעולם לא מתפרש כ-HTML.
+
+function appendWithBold(node, text) {
+  const parts = text.split(/\*\*([^*]+)\*\*/g);
+  parts.forEach((part, i) => {
+    if (!part) return;
+    if (i % 2) node.appendChild(el("strong", "", part));
+    else node.appendChild(document.createTextNode(part));
+  });
+}
+
+function renderAnswerText(text) {
+  const container = el("div", "answer");
+  let list = null;
+  const closeList = () => { list = null; };
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (!line) { closeList(); continue; }
+    let m;
+    if ((m = line.match(/^#{1,4}\s+(.*)$/))) {              // כותרת משנה
+      closeList();
+      const h = el("div", "ans-h");
+      appendWithBold(h, m[1].replace(/\*\*/g, ""));
+      container.appendChild(h);
+    } else if ((m = line.match(/^(?:[-•*]|\d{1,2}[.)])\s+(.*)$/))) {  // פריט רשימה
+      if (!list) { list = el("ul"); container.appendChild(list); }
+      const li = el("li");
+      appendWithBold(li, m[1]);
+      list.appendChild(li);
+    } else {                                               // פסקה רגילה
+      closeList();
+      const p = el("p");
+      appendWithBold(p, line);
+      container.appendChild(p);
+    }
+  }
+  return container;
 }
 
 function scrollDown() {
@@ -214,7 +264,7 @@ function renderAnswer(data) {
   const node = botShell();
   node.appendChild(el("span", "mode-tag",
     (MODE_LABELS[data.mode] || data.mode) + (data.cached ? " · מהמטמון" : "")));
-  node.appendChild(el("div", "", data.answer));
+  node.appendChild(renderAnswerText(data.answer));
 
   if ((data.sources || []).length) {
     const wrap = el("div", "sources");
@@ -312,14 +362,19 @@ for (const ex of EXAMPLES) {
   b.onclick = () => { qEl.value = ex; ask(); };
   examplesEl.appendChild(b);
 }
-addBotText('שלום! אני תכ"ם-קל. שאלו אותי כל שאלה על הוראות התכ"ם — אענה בתמציתיות, עם הפניה מדויקת להוראה ולסעיף וקישור לנוסח המלא.');
+addBotText('שלום! אני עוזר שאלות-תשובות על הוראות התכ"ם. שאלו בשפה חופשית — אענה בתמציתיות מתוך נוסח ההוראות בלבד, עם ציטוט מדויק של ההוראה והסעיף וקישור לנוסח המחייב. אם התשובה לא נמצאת בהוראות שבמאגר — אומר זאת במפורש במקום לנחש.');
 
 goEl.onclick = ask;
 qEl.addEventListener("keydown", e => { if (e.key === "Enter") ask(); });
 
-fetch("/api/health").then(r => r.json()).then(h => {
+// שורת הסטטוס משקפת את המצב האמיתי: מה יש במאגר והאם מודל השפה מחובר
+Promise.all([
+  fetch("/api/health").then(r => r.json()),
+  fetch("/api/stats").then(r => r.json()),
+]).then(([h, s]) => {
   document.getElementById("status").textContent =
-    `גרסה ${h.version} · מודל שפה: ${h.llm_enabled ? "מחובר" : "לא מוגדר (מצב אחזור בלבד)"}`;
+    `במאגר: ${s.documents.length} הוראות מפרק "התקשרויות ורכישות" (${s.documents.join(", ")}) · ` +
+    `מודל שפה: ${h.llm_enabled ? "מחובר" : "לא מוגדר (מצב אחזור בלבד)"} · גרסה ${h.version}`;
 }).catch(() => {});
 </script>
 </body>
