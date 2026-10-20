@@ -172,10 +172,15 @@ def main() -> None:
         return
 
     print(f"\nמריץ את השרת: http://127.0.0.1:{args.port}  (עצירה: Ctrl+C)\n")
-    os.execv(sys.executable, [
+    server_cmd = [
         sys.executable, "-m", "uvicorn", "takam_assistant.api:app",
         "--app-dir", str(ROOT / "src"), "--port", str(args.port),
-    ])
+    ]
+    if os.name == "nt":
+        # ‏execv על Windows מנתק את הקונסולה מהתהליך (ו-Ctrl+C לא עוצר) —
+        # שם מריצים כתהליך-בן וממתינים לו
+        raise SystemExit(subprocess.run(server_cmd).returncode)
+    os.execv(sys.executable, server_cmd)
 
 
 if __name__ == "__main__":

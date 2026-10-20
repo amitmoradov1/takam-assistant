@@ -86,6 +86,15 @@ pip install -r requirements.txt
 python scripts/run.py                  # בדיקת מוכנות + בניית אינדקס + הרצה
 ```
 
+ב-Windows ההפעלה של הסביבה שונה במעט:
+
+```bash
+py -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python scripts\run.py
+```
+
 ואז לגלוש אל http://127.0.0.1:8000
 
 `run.py` מוודא לפני ההרצה שהכול במקום — גרסת Python, תלויות, נתונים,
