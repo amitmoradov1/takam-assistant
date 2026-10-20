@@ -39,10 +39,13 @@ SYSTEM_PROMPT = """\
 3. אחרי כל קביעה ציין את המקור בפורמט [מקור N] לפי מספור הקטעים.
 4. אם קטעי המקור אינם מכילים תשובה לשאלה (או שהשאלה אינה בתחום הוראות \
 התכ"ם) — פתח את תשובתך במשפט המדויק "לא נמצאה תשובה לשאלה זו בהוראות \
-שבמאגר." בלי ציטוטי [מקור N], והפנה את המשתמש לאתר התכ"ם או לגורם \
+שבמאגר." (ובתשובה באנגלית: "No answer to this question was found in the \
+instructions.") בלי ציטוטי [מקור N], והפנה את המשתמש לאתר התכ"ם או לגורם \
 המקצועי המתאים. אל תנחש ואל תצטט מקורות לא רלוונטיים.
 5. אם המקורות סותרים או חלקיים — ציין זאת.
-6. ענה בעברית, בתמציתיות ובלשון מקצועית. פתח בתשובה הישירה במשפט אחד, ואז פרט.
+6. ענה בשפת השאלה (עברית כברירת מחדל; שאלה באנגלית — תשובה באנגלית), \
+בתמציתיות ובלשון מקצועית. מספרי ההוראות, שמותיהן והמונחים המצוטטים \
+נשארים בעברית כלשונם. פתח בתשובה הישירה במשפט אחד, ואז פרט.
 7. עיצוב התשובה (היא מוצגת בבועת צ'אט): פסקאות קצרות, תבליטים (-) לפירוט,
 והדגשה (**כך**) לסכומים ולקביעות מפתח. אל תשתמש בכותרות Markdown (#).
 8. זהו כלי עזר בלבד: סיים תשובות על חובות וסכומים בהפניה לנוסח ההוראה המחייב.
@@ -193,10 +196,50 @@ def answer_mode(text: str) -> str:
     """מבחין בין תשובה מעוגנת לבין "אין תשובה במאגר".
 
     האחזור (BM25) תמיד מחזיר את הקטעים *הקרובים ביותר* — גם לשאלה שאינה
-    בתחום בכלל. המודל מונחה לפתוח ב"לא נמצאה תשובה..." במקרה כזה, והמצב
-    המובחן מאפשר ל-UI להסתיר את המקורות וההוראות הקשורות במקום להציג
-    קישורים שאינם קשורים לשאלה."""
-    return "llm_no_answer" if text.strip().startswith("לא נמצא") else "llm"
+    בתחום בכלל. המודל מונחה לפתוח ב"לא נמצאה תשובה..." (או במקבילה
+    האנגלית, כשהשאלה באנגלית) במקרה כזה, והמצב המובחן מאפשר ל-UI להסתיר
+    את המקורות וההוראות הקשורות במקום להציג קישורים שאינם קשורים לשאלה."""
+    opening = text.strip()
+    return ("llm_no_answer"
+            if opening.startswith("לא נמצא") or opening.lower().startswith("no answer")
+            else "llm")
+
+
+TRANSLATE_SYSTEM_PROMPT = (
+    'תרגם את שאלת המשתמש לעברית, לצורך חיפוש במאגר הוראות התכ"ם '
+    "(מונחי רכש ומכרזים ממשלתיים). החזר את התרגום בלבד, ללא הסברים."
+)
+
+
+def translate_query_to_hebrew(question: str) -> str | None:
+    """תרגום שאילתה לעברית לצורך אחזור בלבד.
+
+    האינדקס הלקסיקלי בנוי על הטקסט העברי של ההוראות — שאלה באנגלית לא
+    תתאים לאף מונח. הגשר: קריאת LLM קצרה שמתרגמת את השאלה לעברית לפני
+    החיפוש; התשובה הסופית עדיין נכתבת בשפת השאלה המקורית. מוחזר None
+    כשאין מפתח API או בכשל — והחיפוש ימשיך עם השאלה כמות שהיא."""
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return None
+    import anthropic
+
+    try:
+        response = anthropic.Anthropic().messages.create(
+            model=get_settings().model,
+            max_tokens=200,
+            system=TRANSLATE_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": question}],
+        )
+    except anthropic.APIError as error:
+        metrics.inc("llm_errors")
+        log("translate_error", error=type(error).__name__)
+        return None
+
+    metrics.inc("llm_translate_calls")
+    metrics.inc("llm_input_tokens", response.usage.input_tokens)
+    metrics.inc("llm_output_tokens", response.usage.output_tokens)
+    translated = "".join(
+        block.text for block in response.content if block.type == "text").strip()
+    return translated or None
 
 
 _WS_RE = re.compile(r"\s+")

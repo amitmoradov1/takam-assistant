@@ -39,6 +39,28 @@ def test_ask_validates_input(client):
     assert client.post("/api/ask", json={}).status_code == 422
 
 
+def test_english_question_retrieves_via_translation_bridge(client, monkeypatch):
+    """שאלה באנגלית לא תואמת את האינדקס העברי — גשר התרגום (מדומה כאן)
+    מאפשר לה להגיע לסעיפים הנכונים; בלי הגשר התוצאה הייתה no_results."""
+    from takam_assistant import api
+
+    monkeypatch.setattr(api, "translate_query_to_hebrew",
+                        lambda q: "מתי מותר לנהל משא ומתן עם מציעים?")
+    response = client.post("/api/ask", json={
+        "question": "When is negotiation with bidders allowed?"})
+    data = response.json()
+    assert data["sources"]
+    assert data["sources"][0]["instruction_number"] == "7.12.3"
+
+
+def test_english_question_without_llm_falls_back_to_no_results(client):
+    # בלי מפתח API אין תרגום — שאלה באנגלית מקבלת no_results מסודר, לא שגיאה
+    response = client.post("/api/ask", json={
+        "question": "When is negotiation with bidders allowed?"})
+    assert response.status_code == 200
+    assert response.json()["mode"] == "no_results"
+
+
 def test_ask_unknown_topic_degrades_gracefully(client):
     response = client.post("/api/ask", json={"question": "xyzzy שאלה על נושא שאינו קיים כלל"})
     assert response.status_code == 200

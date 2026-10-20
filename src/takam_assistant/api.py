@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -21,11 +22,12 @@ from pydantic import BaseModel, Field
 from . import __version__
 from .config import get_settings
 from .index import BM25Index
-from .llm import answer_question
+from .llm import answer_question, translate_query_to_hebrew
 from .observability import log, metrics, new_request_id, question_fingerprint
 from .security import SECURITY_HEADERS, SlidingWindowRateLimiter, sanitize_question
 
 WEB_DIR = Path(__file__).resolve().parents[2] / "web"
+_HEBREW_RE = re.compile(r"[א-ת]")
 
 app = FastAPI(title="תכ\"ם-קל", version=__version__)
 _index: BM25Index | None = None
@@ -132,8 +134,17 @@ def ask(request: AskRequest, http_request: Request) -> dict:
     settings = get_settings()
     index = get_index()
 
+    # שאלה ללא עברית לא תתאים לאינדקס הלקסיקלי העברי — מתרגמים אותה
+    # לעברית לצורך האחזור בלבד (התשובה נכתבת בשפת השאלה המקורית).
+    # מחפשים על שתי הגרסאות יחד כדי לא לאבד מספרי הוראות מהמקור.
+    search_query = question
+    if not _HEBREW_RE.search(question):
+        translated = translate_query_to_hebrew(question)
+        if translated:
+            search_query = f"{question} {translated}"
+
     retrieval_started = time.perf_counter()
-    results = index.search(question, k=settings.top_k)
+    results = index.search(search_query, k=settings.top_k)
     retrieval_ms = (time.perf_counter() - retrieval_started) * 1000
 
     log_fields = {

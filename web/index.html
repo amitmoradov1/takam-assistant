@@ -40,6 +40,39 @@
   .titles h1 { margin: 0; font-size: 1.35rem; font-weight: 700; }
   .titles p { margin: 2px 0 0; font-size: .85rem; opacity: .9; }
 
+  /* ===== פריסה: תפריט שיחות (ימין) + אזור תוכן ===== */
+  .app { flex: 1; display: flex; min-height: 0; }
+  .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  .sidebar {
+    width: 232px; flex-shrink: 0; background: var(--card);
+    border-inline-end: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 8px; padding: 12px 10px;
+    overflow-y: auto;
+  }
+  .new-chat {
+    border: 0; border-radius: 10px; background: var(--gov-blue); color: #fff;
+    padding: 10px; font-size: .9rem; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .new-chat:hover { background: var(--gov-blue-dark); }
+  .chat-list { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .chat-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: .84rem;
+    color: var(--ink);
+  }
+  .chat-item:hover { background: var(--bg); }
+  .chat-item.active { background: var(--gov-blue-soft); color: var(--gov-blue); font-weight: 600; }
+  .chat-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-item .del {
+    border: 0; background: none; cursor: pointer; color: var(--muted);
+    font-size: .75rem; padding: 2px 4px; flex-shrink: 0; font-family: inherit;
+  }
+  .chat-item .del:hover { color: #b3261e; }
+  .sidebar-note { font-size: .7rem; color: var(--muted); text-align: center; }
+  @media (max-width: 720px) { .sidebar { display: none; } }
+
   /* ===== אזור השיחה ===== */
   main {
     flex: 1; overflow-y: auto; scroll-behavior: smooth;
@@ -115,7 +148,6 @@
     font-family: inherit;
   }
   .examples button:hover { background: var(--gov-blue-soft); color: var(--gov-blue); }
-  .examples .clear-chat { margin-inline-start: auto; border-style: dashed; }
   .ask-box { display: flex; gap: 8px; }
   .ask-box input {
     flex: 1; padding: 12px 16px; font-size: 1rem; border: 1.5px solid var(--border);
@@ -147,6 +179,14 @@
   </div>
 </header>
 
+<div class="app">
+<aside class="sidebar" aria-label="היסטוריית שיחות">
+  <button id="new-chat" class="new-chat">+ שיחה חדשה</button>
+  <div class="chat-list" id="chat-list"></div>
+  <div class="sidebar-note">השיחות נשמרות בדפדפן זה בלבד</div>
+</aside>
+
+<div class="content">
 <main>
   <div class="chat" id="chat" aria-live="polite"></div>
 </main>
@@ -163,6 +203,8 @@
     <div class="status" id="status"></div>
   </div>
 </div>
+</div><!-- /content -->
+</div><!-- /app -->
 
 <script>
 const EXAMPLES = [
@@ -376,43 +418,119 @@ async function ask() {
   }
 }
 
-// --- היסטוריית שיחה מקומית ---
-// נשמרת ב-localStorage של הדפדפן בלבד — השרת לא שומר תוכן שאלות (פרטיות).
-// רענון הדף משחזר את השיחה; "שיחה חדשה" מוחקת אותה מהמכשיר.
+// --- ניהול שיחות מקומי (תפריט צד) ---
+// השיחות נשמרות ב-localStorage של הדפדפן בלבד — השרת לא שומר תוכן שאלות
+// (פרטיות). כל שיחה: כותרת (מהשאלה הראשונה), רשימת שאלות-תשובות, ומזהה.
 
-const HISTORY_KEY = "takam_history_v1";
-const HISTORY_LIMIT = 30;
+const CHATS_KEY = "takam_chats_v1";
+const LEGACY_HISTORY_KEY = "takam_history_v1";
+const CHATS_LIMIT = 20;
+const MESSAGES_LIMIT = 30;
 
-function loadHistory() {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
-  catch (e) { return []; }
+let chats = [];        // [{id, title, messages: [תשובת api/ask, ...]}]
+let activeId = null;   // null = שיחה חדשה שטרם נשמרה
+
+function makeId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function persistChats() {
+  try {
+    localStorage.setItem(CHATS_KEY,
+      JSON.stringify({ chats: chats.slice(-CHATS_LIMIT), activeId }));
+  } catch (e) { /* localStorage חסום/מלא — השיחות פשוט לא יישמרו */ }
+}
+
+function loadChats() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(CHATS_KEY));
+    if (stored && Array.isArray(stored.chats)) {
+      chats = stored.chats;
+      activeId = stored.activeId || null;
+    }
+  } catch (e) { chats = []; }
+  // הסבה מהפורמט הישן (רשימה שטוחה אחת) לשיחה ראשונה ברשימה
+  try {
+    const legacy = JSON.parse(localStorage.getItem(LEGACY_HISTORY_KEY));
+    if (Array.isArray(legacy) && legacy.length) {
+      chats.push({ id: makeId(),
+                   title: (legacy[0].question || "שיחה").slice(0, 40),
+                   messages: legacy.slice(-MESSAGES_LIMIT) });
+      localStorage.removeItem(LEGACY_HISTORY_KEY);
+      persistChats();
+    }
+  } catch (e) {}
+}
+
+function activeChat() {
+  return chats.find(c => c.id === activeId) || null;
+}
+
+function renderSidebar() {
+  const list = document.getElementById("chat-list");
+  list.replaceChildren();
+  for (const chat of [...chats].reverse()) {   // החדשה למעלה
+    const item = el("div", "chat-item" + (chat.id === activeId ? " active" : ""));
+    item.appendChild(el("span", "chat-title", chat.title));
+    const del = el("button", "del", "✕");
+    del.title = "מחיקת השיחה";
+    del.onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
+    item.appendChild(del);
+    item.onclick = () => switchChat(chat.id);
+    list.appendChild(item);
+  }
+}
+
+function switchChat(id) {
+  activeId = id;
+  persistChats();
+  chatEl.replaceChildren();
+  const chat = activeChat();
+  if (chat) {
+    for (const entry of chat.messages) {
+      if (!entry || !entry.question || !entry.answer) continue;
+      addUser(entry.question);
+      try { renderAnswer(entry, true); } catch (e) { /* רשומה פגומה */ }
+    }
+  }
+  renderSidebar();
+}
+
+function deleteChat(id) {
+  chats = chats.filter(c => c.id !== id);
+  if (activeId === id) {
+    activeId = null;
+    chatEl.replaceChildren();
+    showWelcome();
+  }
+  persistChats();
+  renderSidebar();
+}
+
+function startNewChat() {
+  activeId = null;
+  persistChats();
+  chatEl.replaceChildren();
+  showWelcome();
+  renderSidebar();
+  qEl.focus();
 }
 
 function saveToHistory(data) {
-  try {
-    const history = loadHistory();
-    history.push(data);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(-HISTORY_LIMIT)));
-  } catch (e) { /* localStorage חסום/מלא — ההיסטוריה פשוט לא תישמר */ }
+  let chat = activeChat();
+  if (!chat) {   // הודעה ראשונה בשיחה חדשה — נפתחת שיחה בתפריט
+    chat = { id: makeId(), title: (data.question || "שיחה").slice(0, 40), messages: [] };
+    chats.push(chat);
+    activeId = chat.id;
+  }
+  chat.messages.push(data);
+  chat.messages = chat.messages.slice(-MESSAGES_LIMIT);
+  persistChats();
+  renderSidebar();
 }
 
 function showWelcome() {
   addBotText('שלום! אני עוזר שאלות-תשובות על הוראות התכ"ם, ממוקד כרגע בפרק ״התקשרויות ורכישות״ — מכרזים, פטור ממכרז, ערבויות, ספקים ומאגרי מציעים (רשימת ההוראות שבמאגר מופיעה למטה). שאלו בשפה חופשית — אענה בתמציתיות מתוך נוסח ההוראות בלבד, עם ציטוט מדויק של ההוראה והסעיף וקישור לנוסח המחייב. שאלה שאין לה תשובה בהוראות שבמאגר — אומר זאת במפורש במקום לנחש.');
-}
-
-function restoreHistory() {
-  for (const entry of loadHistory()) {
-    if (!entry || !entry.question || !entry.answer) continue;
-    addUser(entry.question);
-    try { renderAnswer(entry, true); } catch (e) { /* רשומה ישנה/פגומה */ }
-  }
-}
-
-function startNewChat() {
-  try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
-  chatEl.replaceChildren();
-  showWelcome();
-  qEl.focus();
 }
 
 // אתחול
@@ -422,12 +540,15 @@ for (const ex of EXAMPLES) {
   b.onclick = () => { qEl.value = ex; ask(); };
   examplesEl.appendChild(b);
 }
-const clearBtn = el("button", "clear-chat", "🗑 שיחה חדשה");
-clearBtn.onclick = startNewChat;
-examplesEl.appendChild(clearBtn);
+document.getElementById("new-chat").onclick = startNewChat;
 
-showWelcome();
-restoreHistory();
+loadChats();
+if (activeChat()) {
+  switchChat(activeId);        // חזרה לשיחה שהייתה פתוחה
+} else {
+  showWelcome();
+  renderSidebar();
+}
 
 goEl.onclick = ask;
 qEl.addEventListener("keydown", e => { if (e.key === "Enter") ask(); });

@@ -24,7 +24,9 @@ def test_answer_mode_detects_no_answer():
 
     assert answer_mode("לא נמצאה תשובה לשאלה זו בהוראות שבמאגר.") == "llm_no_answer"
     assert answer_mode("  לא נמצא מידע רלוונטי במקורות.") == "llm_no_answer"
+    assert answer_mode("No answer to this question was found in the instructions.") == "llm_no_answer"
     assert answer_mode("תקרת הסכום היא **100,000 ₪** [מקור 1].") == "llm"
+    assert answer_mode("The threshold is **100,000 ILS** [מקור 1].") == "llm"
 
 
 def test_no_answer_responses_are_cached(sample_index, monkeypatch):
