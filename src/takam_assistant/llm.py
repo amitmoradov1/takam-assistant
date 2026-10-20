@@ -43,9 +43,9 @@ SYSTEM_PROMPT = """\
 instructions.") בלי ציטוטי [מקור N], והפנה את המשתמש לאתר התכ"ם או לגורם \
 המקצועי המתאים. אל תנחש ואל תצטט מקורות לא רלוונטיים.
 5. אם המקורות סותרים או חלקיים — ציין זאת.
-6. ענה בשפת השאלה (עברית כברירת מחדל; שאלה באנגלית — תשובה באנגלית), \
-בתמציתיות ובלשון מקצועית. מספרי ההוראות, שמותיהן והמונחים המצוטטים \
-נשארים בעברית כלשונם.
+6. ענה בשפה המבוקשת בהודעת המשתמש ("שפת התשובה הנדרשת"); אם לא צוינה — \
+בשפת השאלה. בתמציתיות ובלשון מקצועית. מספרי ההוראות, שמותיהן והמונחים \
+המצוטטים נשארים בעברית כלשונם.
 7. מבנה תשובה שנמצאה במקורות: פתח בשורה שמתחילה במדויק ב"שורה תחתונה:" \
 (בתשובה באנגלית: "Bottom line:") — ההסקה הישירה לשאלה שנשאלה, משפט אחד \
 או שניים עם ציטוט [מקור N]. ההסקה חייבת לנבוע אך ורק מקטעי המקור: אם \
@@ -119,25 +119,36 @@ class AnswerCache:
 _cache = AnswerCache()
 
 
-def answer_question(question: str, results: list[SearchResult]) -> dict:
-    """מחזיר {answer, sources, mode}. בוחר מצב לפי זמינות מפתח API."""
+NO_RESULTS_ANSWER = {
+    "he": "לא נמצאו סעיפים רלוונטיים לשאלה במאגר ההוראות שנטען. "
+          "נסו לנסח מחדש או לציין את מספר ההוראה.",
+    "en": "No relevant sections were found in the loaded instructions. "
+          "Try rephrasing, or mention the instruction number.",
+}
+
+
+def answer_question(question: str, results: list[SearchResult],
+                    lang: str = "he") -> dict:
+    """מחזיר {answer, sources, mode}. בוחר מצב לפי זמינות מפתח API.
+
+    lang — שפת הממשק שבחר המשתמש: היא קובעת את שפת התשובה (גם לשאלה
+    שנכתבה בשפה אחרת), ולכן היא חלק ממפתח ה-cache."""
     if not results:
         metrics.inc("answers_no_results")
         return {
-            "answer": "לא נמצאו סעיפים רלוונטיים לשאלה במאגר ההוראות שנטען. "
-                      "נסו לנסח מחדש או לציין את מספר ההוראה.",
+            "answer": NO_RESULTS_ANSWER.get(lang, NO_RESULTS_ANSWER["he"]),
             "sources": [],
             "mode": "no_results",
         }
 
     if os.environ.get("ANTHROPIC_API_KEY"):
-        cache_key = AnswerCache.key(question, results)
+        cache_key = f"{lang}|{AnswerCache.key(question, results)}"
         cached = _cache.get(cache_key)
         if cached is not None:
             metrics.inc("answers_cache_hit")
             cached["cached"] = True
             return cached
-        response = _llm_answer(question, results)
+        response = _llm_answer(question, results, lang)
         if response["mode"] in ("llm", "llm_no_answer"):
             _cache.put(cache_key, response)
         return response
@@ -146,13 +157,16 @@ def answer_question(question: str, results: list[SearchResult]) -> dict:
     return _extractive_answer(results)
 
 
-def _llm_answer(question: str, results: list[SearchResult]) -> dict:
+def _llm_answer(question: str, results: list[SearchResult],
+                lang: str = "he") -> dict:
     import anthropic
 
     client = anthropic.Anthropic()
+    answer_language = "עברית" if lang == "he" else "English"
     user_message = (
         f"קטעי מקור מהוראות התכ\"ם:\n\n{_format_sources(results)}\n\n"
-        f"שאלת המשתמש: {question}"
+        f"שאלת המשתמש: {question}\n\n"
+        f"שפת התשובה הנדרשת (לפי בחירת המשתמש בממשק): {answer_language}"
     )
     try:
         response = client.messages.create(

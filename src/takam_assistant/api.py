@@ -93,6 +93,8 @@ async def observability_middleware(request: Request, call_next):
 
 class AskRequest(BaseModel):
     question: str = Field(min_length=2, max_length=1000)
+    # שפת הממשק שבחר המשתמש — קובעת את שפת התשובה
+    lang: str = Field(default="he", pattern="^(he|en)$")
 
 
 class FeedbackRequest(BaseModel):
@@ -159,7 +161,7 @@ def ask(request: AskRequest, http_request: Request) -> dict:
         log_fields["question"] = question
     log("ask", **log_fields)
 
-    response = answer_question(question, results)
+    response = answer_question(question, results, lang=request.lang)
     response["question"] = question
     # הוראות קשורות — מגרף ההפניות הצולבות של ההוראות שהתשובה נשענת עליהן
     source_instructions = list(dict.fromkeys(

@@ -35,7 +35,7 @@ def test_no_answer_responses_are_cached(sample_index, monkeypatch):
 
     calls = {"n": 0}
 
-    def fake_llm(question, results):
+    def fake_llm(question, results, lang="he"):
         calls["n"] += 1
         return {"answer": "לא נמצאה תשובה לשאלה זו בהוראות שבמאגר.",
                 "sources": [], "mode": "llm_no_answer"}
@@ -51,13 +51,42 @@ def test_no_answer_responses_are_cached(sample_index, monkeypatch):
     assert second["cached"] is True
 
 
+def test_answer_language_follows_ui_choice(sample_index, monkeypatch):
+    """בחירת שפה בממשק קובעת את שפת התשובה ומבדלת את ה-cache —
+    אותה שאלה בעברית ובאנגלית הן שתי רשומות נפרדות."""
+    import takam_assistant.llm as llm
+
+    seen_langs = []
+
+    def fake_llm(question, results, lang="he"):
+        seen_langs.append(lang)
+        return {"answer": f"answer-{lang}", "sources": [], "mode": "llm"}
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr(llm, "_llm_answer", fake_llm)
+    llm._cache = llm.AnswerCache()
+
+    results = sample_index.search("מהי ערבות ביצוע?", k=3)
+    hebrew = llm.answer_question("מהי ערבות ביצוע?", results, lang="he")
+    english = llm.answer_question("מהי ערבות ביצוע?", results, lang="en")
+    assert seen_langs == ["he", "en"]        # en לא הגיע מה-cache של he
+    assert hebrew["answer"] != english["answer"]
+
+
+def test_no_results_answer_localized():
+    from takam_assistant.llm import answer_question
+
+    assert "לא נמצאו" in answer_question("שאלה", [], lang="he")["answer"]
+    assert "No relevant" in answer_question("question", [], lang="en")["answer"]
+
+
 def test_llm_answer_cache(sample_index, monkeypatch):
     """תשובת LLM זהה לשאלה חוזרת מגיעה מה-cache בלי קריאה שנייה לרשת."""
     import takam_assistant.llm as llm
 
     calls = {"n": 0}
 
-    def fake_llm(question, results):
+    def fake_llm(question, results, lang="he"):
         calls["n"] += 1
         return {"answer": "תשובה", "sources": [], "mode": "llm"}
 

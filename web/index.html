@@ -488,7 +488,8 @@ async function ask() {
     const res = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      // שפת הממשק קובעת את שפת התשובה
+      body: JSON.stringify({ question, lang }),
     });
     thinking.remove();
     if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
