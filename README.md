@@ -78,21 +78,26 @@ API אתר התכ"ם ──► scraper ──► DOCX ──► שחזור מס�
 
 ## חלק ב': הרצת ה-POC
 
-### התקנה והרצה
+### התקנה והרצה (פקודה אחת)
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate   # סביבה וירטואלית (חובה ב-macOS/Homebrew)
-pip install -r requirements.txt
-python scripts/run.py                  # בדיקת מוכנות + בניית אינדקס + הרצה
+./run.sh        # macOS / Linux
 ```
 
-ב-Windows ההפעלה של הסביבה שונה במעט:
+```bash
+run.bat         # Windows
+```
+
+העטיפה יוצרת סביבה וירטואלית אם אין, מתקינה את התלויות, ומריצה את
+`scripts/run.py` — שבודק מוכנות בצ'ק-ליסט (Python, תלויות, נתונים, אינדקס
+עדכני — נבנה אוטומטית אם חסר, מפתח API, פורט פנוי) ואז מרים את השרת.
+אפשר להעביר דגלים: `./run.sh --check-only` לבדיקה בלבד, `--port 8080`
+לפורט אחר. הרצה ידנית בלי העטיפה:
 
 ```bash
-py -m venv .venv
-.venv\Scripts\activate
+python3 -m venv .venv && source .venv/bin/activate   # Windows: py -m venv .venv ואז .venv\Scripts\activate
 pip install -r requirements.txt
-python scripts\run.py
+python scripts/run.py
 ```
 
 ואז לגלוש אל http://127.0.0.1:8000
@@ -273,6 +278,7 @@ docker run -p 8000:8000 -e ANTHROPIC_API_KEY=sk-ant-... takam-assistant
 ```
 takam-assistant/
 ├── README.md                  ← המסמך הזה
+├── run.sh / run.bat           ← הקמה והרצה בפקודה אחת (macOS-Linux / Windows)
 ├── requirements.txt
 ├── .env.example
 ├── data/
