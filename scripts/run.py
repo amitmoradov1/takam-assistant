@@ -61,7 +61,12 @@ def check_dependencies() -> bool:
         say(OK, f"כל התלויות מותקנות ({len(REQUIRED_PACKAGES)})")
         return True
     say(FAIL, f"תלויות חסרות: {', '.join(missing)}")
-    print(f"      התקנה: {sys.executable} -m pip install -r requirements.txt")
+    if sys.prefix == sys.base_prefix:  # לא בתוך venv — pip ייחסם ב-macOS/Homebrew
+        print("      צרו סביבה וירטואלית והתקינו בתוכה:")
+        print("        python3 -m venv .venv && source .venv/bin/activate")
+        print("        pip install -r requirements.txt")
+    else:
+        print(f"      התקנה: {sys.executable} -m pip install -r requirements.txt")
     return False
 
 

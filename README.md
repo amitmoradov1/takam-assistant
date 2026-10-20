@@ -78,9 +78,10 @@ API אתר התכ"ם ──► scraper ──► DOCX ──► שחזור מס�
 
 ## חלק ב': הרצת ה-POC
 
-### התקנה והרצה (2 פקודות)
+### התקנה והרצה
 
 ```bash
+python3 -m venv .venv && source .venv/bin/activate   # סביבה וירטואלית (חובה ב-macOS/Homebrew)
 pip install -r requirements.txt
 python scripts/run.py                  # בדיקת מוכנות + בניית אינדקס + הרצה
 ```
