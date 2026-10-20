@@ -1,0 +1,21 @@
+{
+  "description": "סט שאלות זהב להערכת איכות האחזור מול המדגם האמיתי שנאסף מאתר התכ\"ם (data/raw, פרק 7 — התקשרויות ורכישות). לכל שאלה: ההוראה שבה נמצאת התשובה. הסט נכתב מתוך קריאת ההוראות; במערכת אמת יאושרר מול רפרנט מקצועי. הסט הסינתטי לבדיקות היחידה: gold.sample.json.",
+  "questions": [
+    {"question": "מהי תקרת הסכום להתקשרות בהליך רכש מקוצר?", "expected_instruction": "7.7.1"},
+    {"question": "איך מבצעים הליך רכש מקוצר מול ספקים?", "expected_instruction": "7.7.1"},
+    {"question": "לפי איזו תקנה מותרת התקשרות בפטור ממכרז?", "expected_instruction": "7.6.1"},
+    {"question": "מה נדרש כדי לאשר התקשרות המשך עם ספק יחיד?", "expected_instruction": "7.6.1"},
+    {"question": "מי מאשר התקשרות דחופה למניעת נזק של ממש?", "expected_instruction": "7.6.1"},
+    {"question": "מתי ניתן לדרוש ערבות ביצוע מספק?", "expected_instruction": "7.3.3"},
+    {"question": "האם חובה לדרוש ערבות מכרז מהמציעים?", "expected_instruction": "7.3.3"},
+    {"question": "מה צריך לדרוש מספק שמקבל מקדמה?", "expected_instruction": "7.3.3"},
+    {"question": "מי רשאי לפתוח את תיבת המכרזים וכיצד?", "expected_instruction": "7.4.1"},
+    {"question": "איך מטפלים בשאלות הבהרה של מציעים במכרז?", "expected_instruction": "7.4.1"},
+    {"question": "מהי פנייה מוקדמת לקבלת מידע RFI ומתי משתמשים בה?", "expected_instruction": "7.2.3"},
+    {"question": "מהי זירת האתגרים הממשלתית?", "expected_instruction": "7.2.3"},
+    {"question": "מהו הרכב ועדת המכרזים המשרדית?", "expected_instruction": "7.1.1"},
+    {"question": "מתי מותר להתקשר עם בעל מקצוע מומחה בלי מכרז?", "expected_instruction": "7.7.4"},
+    {"question": "אילו כללים חלים על הקמת מאגר מציעים וניהולו?", "expected_instruction": "7.13.1"},
+    {"question": "מה קובעת הוראה 7.4.1 לגבי אומדן?", "expected_instruction": "7.4.1"}
+  ]
+}

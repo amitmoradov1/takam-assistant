@@ -1,0 +1,38 @@
+# CI: בכל push/PR — התקנה, בדיקות, ובניית אינדקס + הרצת eval אחזור כ-smoke.
+# שער האיכות: הבדיקות חייבות לעבור; ה-eval מדווח ונכשל אם recall@5 יורד מ-0.9.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run unit tests
+        run: python -m pytest tests/ -v
+      - name: Build index and run retrieval eval
+        run: |
+          python scripts/build_index.py
+          python scripts/eval_retrieval.py
+      - name: Enforce retrieval quality gate
+        run: |
+          python - <<'EOF'
+          import json, sys
+          sys.path.insert(0, "src")
+          from takam_assistant.index import BM25Index
+          from pathlib import Path
+          sys.path.insert(0, "scripts")
+          from eval_retrieval import evaluate
+          gold = json.loads(Path("data/eval/gold.json").read_text())["questions"]
+          report = evaluate(BM25Index.load("data/index.json"), gold, k=5)
+          assert report["recall_at_5"] >= 0.9, f"retrieval regression: {report}"
+          print("quality gate passed:", report["recall_at_5"])
+          EOF

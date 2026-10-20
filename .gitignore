@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+# האינדקס נבנה מחדש מהמקורות; מדגם הנתונים (data/raw) כן נכנס ל-repo —
+# הוא חלק מתוצרי ההגשה
+data/index.json
+data/feedback.jsonl
+.pytest_cache/

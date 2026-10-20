@@ -1,0 +1,15 @@
+{
+  "description": "סט שאלות זהב להערכת איכות האחזור. לכל שאלה: ההוראה שבה נמצאת התשובה. מותאם לנתוני הדוגמה — בעת מעבר לנתונים אמיתיים יש לעדכן את הסט מול רפרנט מקצועי.",
+  "questions": [
+    {"question": "מהי התקרה להתקשרות בפטור ממכרז?", "expected_instruction": "7.2.1"},
+    {"question": "מה נדרש כדי להתקשר עם ספק יחיד?", "expected_instruction": "7.2.1"},
+    {"question": "מתי מותר לנהל משא ומתן עם מציעים במכרז?", "expected_instruction": "7.12.3"},
+    {"question": "האם מותר להעביר למציע מידע על הצעות מתחרות?", "expected_instruction": "7.12.3"},
+    {"question": "מי פותח את תיבת המכרזים וכיצד?", "expected_instruction": "7.4.3.8"},
+    {"question": "מה קובעת הוראה 7.4.3.8 לגבי עיון במסמכי מכרז?", "expected_instruction": "7.4.3.8"},
+    {"question": "מהו שיעור ערבות הביצוע הנדרש?", "expected_instruction": "7.7.1"},
+    {"question": "האם חובה לצרף ערבות להצעה במכרז?", "expected_instruction": "7.7.1"},
+    {"question": "איך מקבלים החזר על נסיעה ברכב פרטי בתפקיד?", "expected_instruction": "13.9.2"},
+    {"question": "עד מתי צריך להגיש דוח הוצאות נסיעה?", "expected_instruction": "13.9.2"}
+  ]
+}

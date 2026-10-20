@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>תכ"ם-קל</title>
+<style>
+  /* סגנון בהשראת השפה העיצובית של שירותים ממשלתיים דיגיטליים:
+     כחול ממשלתי, רקע אפור בהיר, קווים נקיים ונגישות.
+     ללא פונט חיצוני בכוונה: ה-CSP שלנו מתיר self בלבד, וזה גם התרחיש
+     של רשת ממשלתית סגורה (README חלק ג') — גופני המערכת מספיקים */
+  :root {
+    --gov-blue: #0b418c; --gov-blue-dark: #072c61; --gov-blue-soft: #e7eef9;
+    --bg: #eef1f5; --card: #ffffff; --ink: #1b2a3a; --muted: #5a6b7e;
+    --border: #d4dbe4; --accent-yellow: #ffc107; --ok: #2e7d32;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    display: flex; flex-direction: column;
+  }
+
+  /* ===== כותרת עליונה בסגנון אתר ממשלתי ===== */
+  header {
+    background: var(--gov-blue); color: #fff; flex-shrink: 0;
+    border-bottom: 4px solid var(--accent-yellow);
+  }
+  .header-inner {
+    max-width: 880px; margin: 0 auto; padding: 14px 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .logo {
+    width: 46px; height: 46px; border-radius: 10px; background: #fff;
+    color: var(--gov-blue); font-weight: 700; font-size: .85rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; letter-spacing: -0.5px;
+  }
+  .titles h1 { margin: 0; font-size: 1.35rem; font-weight: 700; }
+  .titles p { margin: 2px 0 0; font-size: .85rem; opacity: .9; }
+  .poc-badge {
+    margin-inline-start: auto; background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.4); border-radius: 999px;
+    padding: 3px 12px; font-size: .75rem; white-space: nowrap;
+  }
+
+  /* ===== אזור השיחה ===== */
+  main {
+    flex: 1; overflow-y: auto; scroll-behavior: smooth;
+  }
+  .chat {
+    max-width: 880px; margin: 0 auto; padding: 20px 16px 8px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .msg { max-width: 85%; line-height: 1.6; font-size: .95rem; }
+  .msg.user {
+    align-self: flex-start; background: var(--gov-blue); color: #fff;
+    border-radius: 14px 14px 14px 4px; padding: 10px 16px;
+  }
+  .msg.bot {
+    align-self: flex-end; background: var(--card);
+    border: 1px solid var(--border); border-radius: 14px 14px 4px 14px;
+    padding: 14px 18px; box-shadow: 0 1px 3px rgba(16,42,80,.07);
+    white-space: pre-wrap; width: 85%;
+  }
+  .msg.bot .bot-tag {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+    font-size: .78rem; color: var(--gov-blue); font-weight: 600;
+  }
+  .bot-tag .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gov-blue); }
+  .mode-tag {
+    display: inline-block; font-size: .72rem; color: var(--muted);
+    background: var(--gov-blue-soft); border-radius: 6px; padding: 2px 8px;
+    margin-bottom: 8px; font-weight: 600;
+  }
+  .sources { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .sources h3, .related h3 {
+    margin: 0 0 6px; font-size: .82rem; color: var(--gov-blue); font-weight: 700;
+  }
+  .source { font-size: .84rem; margin-bottom: 8px; white-space: normal; }
+  .source .cite { font-weight: 600; }
+  .source .snippet { color: var(--muted); font-size: .8rem; }
+  .source a, .related a { color: var(--gov-blue); font-weight: 600; }
+  .related { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .rel-item { font-size: .84rem; margin-bottom: 4px; white-space: normal; }
+  .rel-tag {
+    font-size: .7rem; color: var(--muted); background: var(--gov-blue-soft);
+    border-radius: 6px; padding: 1px 6px; margin-inline-start: 6px;
+  }
+  .feedback { margin-top: 10px; display: flex; gap: 6px; align-items: center; }
+  .feedback button {
+    border: 1px solid var(--border); background: var(--bg); border-radius: 8px;
+    padding: 4px 12px; cursor: pointer; font-size: .82rem; font-family: inherit;
+  }
+  .feedback button:hover { background: var(--gov-blue-soft); }
+  .feedback .thanks { color: var(--ok); font-size: .82rem; }
+  .error { color: #b3261e; }
+
+  /* ===== שורת קלט ===== */
+  .composer { background: var(--card); border-top: 1px solid var(--border); flex-shrink: 0; }
+  .composer-inner { max-width: 880px; margin: 0 auto; padding: 12px 16px 8px; }
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .examples button {
+    border: 1px solid var(--border); background: var(--bg); color: var(--muted);
+    border-radius: 999px; padding: 4px 13px; font-size: .8rem; cursor: pointer;
+    font-family: inherit;
+  }
+  .examples button:hover { background: var(--gov-blue-soft); color: var(--gov-blue); }
+  .ask-box { display: flex; gap: 8px; }
+  .ask-box input {
+    flex: 1; padding: 12px 16px; font-size: 1rem; border: 1.5px solid var(--border);
+    border-radius: 10px; font-family: inherit;
+  }
+  .ask-box input:focus { outline: 2px solid var(--gov-blue); border-color: var(--gov-blue); }
+  .ask-box button {
+    padding: 12px 26px; font-size: 1rem; font-weight: 600; border: 0;
+    border-radius: 10px; background: var(--gov-blue); color: #fff; cursor: pointer;
+    font-family: inherit;
+  }
+  .ask-box button:hover { background: var(--gov-blue-dark); }
+  .ask-box button:disabled { opacity: .6; cursor: wait; }
+  .disclaimer {
+    text-align: center; font-size: .74rem; color: var(--muted); padding: 6px 0 10px;
+  }
+  .status { font-size: .72rem; color: var(--muted); text-align: center; padding-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">תכ"ם</div>
+    <div class="titles">
+      <h1>תכ"ם-קל</h1>
+      <p>עוזר חכם להוראות התקנון הכספי והמשקי — תשובות עם הפניה מדויקת לסעיף</p>
+    </div>
+    <span class="poc-badge">POC · מטלת בית</span>
+  </div>
+</header>
+
+<main>
+  <div class="chat" id="chat" aria-live="polite"></div>
+</main>
+
+<div class="composer">
+  <div class="composer-inner">
+    <div class="examples" id="examples"></div>
+    <div class="ask-box">
+      <input id="q" placeholder='שאלו בשפה חופשית, למשל: מתי מותר להתקשר בפטור ממכרז?'
+             aria-label="שאלה על הוראות התכם" autofocus>
+      <button id="go">שליחה</button>
+    </div>
+    <div class="disclaimer">תכ"ם-קל הוא כלי עזר בלבד; הנוסח המחייב הוא נוסח ההוראה באתר התכ"ם.</div>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<script>
+const EXAMPLES = [
+  "מהי תקרת הסכום להתקשרות בהליך רכש מקוצר?",
+  "מה נדרש כדי לאשר התקשרות עם ספק יחיד?",
+  "מתי ניתן לדרוש ערבות ביצוע מספק?",
+  "מי רשאי לפתוח את תיבת המכרזים?",
+];
+
+const MODE_LABELS = {
+  llm: "תשובה מנוסחת על בסיס ההוראות בלבד",
+  extractive: "מצב אחזור בלבד (לא הוגדר מפתח API)",
+  refused: "המודל סירב לענות",
+  no_results: "לא נמצאו מקורות",
+};
+
+const chatEl = document.getElementById("chat");
+const qEl = document.getElementById("q");
+const goEl = document.getElementById("go");
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function scrollDown() {
+  document.querySelector("main").scrollTo({ top: 1e9, behavior: "smooth" });
+}
+
+function addUser(text) {
+  chatEl.appendChild(el("div", "msg user", text));
+  scrollDown();
+}
+
+function botShell() {
+  const node = el("div", "msg bot");
+  const tag = el("div", "bot-tag");
+  tag.appendChild(el("span", "dot"));
+  tag.appendChild(el("span", "", 'תכ"ם-קל'));
+  node.appendChild(tag);
+  chatEl.appendChild(node);
+  scrollDown();
+  return node;
+}
+
+function addBotText(text, isError) {
+  const node = botShell();
+  node.appendChild(el("div", isError ? "error" : "", text));
+  scrollDown();
+  return node;
+}
+
+function renderAnswer(data) {
+  const node = botShell();
+  node.appendChild(el("span", "mode-tag",
+    (MODE_LABELS[data.mode] || data.mode) + (data.cached ? " · מהמטמון" : "")));
+  node.appendChild(el("div", "", data.answer));
+
+  if ((data.sources || []).length) {
+    const wrap = el("div", "sources");
+    wrap.appendChild(el("h3", "", "מקורות"));
+    for (const s of data.sources) {
+      const src = el("div", "source");
+      src.appendChild(el("div", "cite", `[${s.n}] ${s.citation}`));
+      src.appendChild(el("div", "snippet", s.snippet + "…"));
+      if (s.url) {
+        const a = el("a", "", 'לנוסח המלא באתר התכ"ם ↗');
+        a.href = s.url; a.target = "_blank"; a.rel = "noopener";
+        src.appendChild(a);
+      }
+      wrap.appendChild(src);
+    }
+    node.appendChild(wrap);
+  }
+
+  if ((data.related || []).length) {
+    const wrap = el("div", "related");
+    wrap.appendChild(el("h3", "", "הוראות קשורות"));
+    for (const r of data.related) {
+      const row = el("div", "rel-item");
+      const label = `הוראה ${r.instruction_number} — ${r.title}`;
+      if (r.url) {
+        const a = el("a", "", label);
+        a.href = r.url; a.target = "_blank"; a.rel = "noopener";
+        row.appendChild(a);
+      } else {
+        row.appendChild(el("span", "", label));
+      }
+      row.appendChild(el("span", "rel-tag", r.relation));
+      wrap.appendChild(row);
+    }
+    node.appendChild(wrap);
+  }
+
+  const fb = el("div", "feedback");
+  fb.appendChild(el("span", "", "האם התשובה עזרה?"));
+  for (const [label, helpful] of [["👍 כן", true], ["👎 לא", false]]) {
+    const btn = el("button", "", label);
+    btn.onclick = async () => {
+      try {
+        await fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: data.question, mode: data.mode, helpful }),
+        });
+      } catch (e) { /* best-effort */ }
+      fb.replaceChildren(el("span", "thanks", "תודה! המשוב נשמר ומשמש לשיפור המערכת."));
+    };
+    fb.appendChild(btn);
+  }
+  node.appendChild(fb);
+  scrollDown();
+}
+
+async function ask() {
+  const question = qEl.value.trim();
+  if (!question) return;
+  qEl.value = "";
+  addUser(question);
+  goEl.disabled = true; goEl.textContent = "חושב...";
+  const thinking = addBotText("מאתר את הסעיפים הרלוונטיים...");
+  try {
+    const res = await fetch("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+    thinking.remove();
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    renderAnswer(await res.json());
+  } catch (err) {
+    thinking.remove();
+    addBotText("שגיאה: " + err.message, true);
+  } finally {
+    goEl.disabled = false; goEl.textContent = "שליחה";
+    qEl.focus();
+  }
+}
+
+// אתחול
+const examplesEl = document.getElementById("examples");
+for (const ex of EXAMPLES) {
+  const b = el("button", "", ex);
+  b.onclick = () => { qEl.value = ex; ask(); };
+  examplesEl.appendChild(b);
+}
+addBotText('שלום! אני תכ"ם-קל. שאלו אותי כל שאלה על הוראות התכ"ם — אענה בתמציתיות, עם הפניה מדויקת להוראה ולסעיף וקישור לנוסח המלא.');
+
+goEl.onclick = ask;
+qEl.addEventListener("keydown", e => { if (e.key === "Enter") ask(); });
+
+fetch("/api/health").then(r => r.json()).then(h => {
+  document.getElementById("status").textContent =
+    `גרסה ${h.version} · מודל שפה: ${h.llm_enabled ? "מחובר" : "לא מוגדר (מצב אחזור בלבד)"}`;
+}).catch(() => {});
+</script>
+</body>
+</html>
