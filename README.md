@@ -81,17 +81,17 @@ API אתר התכ"ם ──► scraper ──► DOCX ──► שחזור מס�
 ### התקנה והרצה (פקודה אחת)
 
 ```bash
-./run.sh        # macOS / Linux
+scripts/run.sh        # macOS / Linux
 ```
 
 ```bash
-run.bat         # Windows
+scripts\run.bat       # Windows
 ```
 
 העטיפה יוצרת סביבה וירטואלית אם אין, מתקינה את התלויות, ומריצה את
 `scripts/run.py` — שבודק מוכנות בצ'ק-ליסט (Python, תלויות, נתונים, אינדקס
 עדכני — נבנה אוטומטית אם חסר, מפתח API, פורט פנוי) ואז מרים את השרת.
-אפשר להעביר דגלים: `./run.sh --check-only` לבדיקה בלבד, `--port 8080`
+אפשר להעביר דגלים: `scripts/run.sh --check-only` לבדיקה בלבד, `--port 8080`
 לפורט אחר. הרצה ידנית בלי העטיפה:
 
 ```bash
@@ -278,7 +278,6 @@ docker run -p 8000:8000 -e ANTHROPIC_API_KEY=sk-ant-... takam-assistant
 ```
 takam-assistant/
 ├── README.md                  ← המסמך הזה
-├── run.sh / run.bat           ← הקמה והרצה בפקודה אחת (macOS-Linux / Windows)
 ├── requirements.txt
 ├── .env.example
 ├── data/
@@ -302,7 +301,8 @@ takam-assistant/
 │   ├── observability.py       ← לוגים JSON, request_id, מדדים
 │   └── security.py            ← rate limiting, כותרות אבטחה, ניקוי קלט
 ├── scripts/
-│   ├── run.py                 ← בדיקת מוכנות (preflight) + הרצה בפקודה אחת
+│   ├── run.sh / run.bat       ← הקמה והרצה בפקודה אחת (macOS-Linux / Windows)
+│   ├── run.py                 ← הלוגיקה: בדיקת מוכנות (preflight) + הרצה
 │   ├── build_index.py         ← בניית האינדקס
 │   ├── eval_retrieval.py      ← הערכת איכות אחזור מול סט הזהב
 │   └── ask.py                 ← שאילתה מהטרמינל

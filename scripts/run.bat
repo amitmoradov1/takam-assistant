@@ -1,10 +1,10 @@
 @echo off
 rem TAKAM-Kal - setup and run in one command (Windows):
-rem   run.bat               full run
-rem   run.bat --check-only  preflight checks only
+rem   scripts\run.bat               full run
+rem   scripts\run.bat --check-only  preflight checks only
 rem Creates a venv if missing, installs deps, and delegates to scripts\run.py -
 rem all the logic (preflight, index, server) lives there, cross-platform.
-cd /d "%~dp0"
+cd /d "%~dp0.."
 
 if not exist .venv (
     echo Creating virtual environment ^(.venv^)...
