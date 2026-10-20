@@ -100,6 +100,15 @@
     font-weight: 700; color: var(--gov-blue); margin: .7em 0 .3em;
   }
   .answer strong { color: var(--gov-blue-dark); }
+  /* "שורה תחתונה" — ההסקה הישירה לשאלה, מובלטת בראש התשובה */
+  .answer .bottom-line {
+    background: var(--gov-blue-soft); border-inline-start: 4px solid var(--gov-blue);
+    border-radius: 8px; padding: 10px 14px; margin: .2em 0 .6em;
+  }
+  .answer .bottom-line .bl-label {
+    display: block; font-size: .75rem; font-weight: 700; color: var(--gov-blue);
+    margin-bottom: 2px;
+  }
   .msg.bot .bot-tag {
     display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
     font-size: .78rem; color: var(--gov-blue); font-weight: 600;
@@ -247,6 +256,9 @@ function appendWithBold(node, text) {
   });
 }
 
+// זיהוי "שורה תחתונה:" / "Bottom line:" בפתיחת התשובה (גם כשהמודל הדגיש אותה)
+const BOTTOM_LINE_RE = /^\*{0,2}(שורה תחתונה|Bottom line)\*{0,2}\s*:\*{0,2}\s*(.*)$/i;
+
 function renderAnswerText(text) {
   const container = el("div", "answer");
   let list = null;
@@ -255,6 +267,14 @@ function renderAnswerText(text) {
     const line = raw.trim();
     if (!line) { closeList(); continue; }
     let m;
+    if (!container.childNodes.length && (m = line.match(BOTTOM_LINE_RE))) {
+      const box = el("div", "bottom-line");       // ההסקה הישירה לשאלה
+      box.appendChild(el("span", "bl-label",
+        m[1].toLowerCase().startsWith("bottom") ? "Bottom line" : "שורה תחתונה"));
+      appendWithBold(box, m[2]);
+      container.appendChild(box);
+      continue;
+    }
     if ((m = line.match(/^#{1,4}\s+(.*)$/))) {              // כותרת משנה
       closeList();
       const h = el("div", "ans-h");
