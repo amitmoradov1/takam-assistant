@@ -39,6 +39,13 @@
   }
   .titles h1 { margin: 0; font-size: 1.35rem; font-weight: 700; }
   .titles p { margin: 2px 0 0; font-size: .85rem; opacity: .9; }
+  .lang-toggle {
+    margin-inline-start: auto; background: rgba(255,255,255,.12); color: #fff;
+    border: 1px solid rgba(255,255,255,.45); border-radius: 999px;
+    padding: 4px 14px; font-size: .8rem; font-weight: 600; cursor: pointer;
+    font-family: inherit; flex-shrink: 0;
+  }
+  .lang-toggle:hover { background: rgba(255,255,255,.25); }
 
   /* ===== פריסה: תפריט שיחות (ימין) + אזור תוכן ===== */
   .app { flex: 1; display: flex; min-height: 0; }
@@ -183,8 +190,9 @@
     <div class="logo">תכ"ם</div>
     <div class="titles">
       <h1>תכ"ם-קל</h1>
-      <p>מוצאים תשובה בהוראות התכ"ם, פרק ״התקשרויות ורכישות״ — עם ציטוט הסעיף המדויק וקישור לנוסח המחייב</p>
+      <p id="subtitle">מוצאים תשובה בהוראות התכ"ם, פרק ״התקשרויות ורכישות״ — עם ציטוט הסעיף המדויק וקישור לנוסח המחייב</p>
     </div>
+    <button id="lang-toggle" class="lang-toggle" title="Switch language">EN</button>
   </div>
 </header>
 
@@ -208,7 +216,7 @@
              aria-label="שאלה על הוראות התכם" autofocus>
       <button id="go">שליחה</button>
     </div>
-    <div class="disclaimer">תכ"ם-קל הוא כלי עזר בלבד; הנוסח המחייב הוא נוסח ההוראה באתר התכ"ם.</div>
+    <div class="disclaimer" id="disclaimer">תכ"ם-קל הוא כלי עזר בלבד; הנוסח המחייב הוא נוסח ההוראה באתר התכ"ם.</div>
     <div class="status" id="status"></div>
   </div>
 </div>
@@ -216,20 +224,79 @@
 </div><!-- /app -->
 
 <script>
-const EXAMPLES = [
-  "מהי תקרת הסכום להתקשרות בהליך רכש מקוצר?",
-  "מה נדרש כדי לאשר התקשרות עם ספק יחיד?",
-  "מתי ניתן לדרוש ערבות ביצוע מספק?",
-  "מי רשאי לפתוח את תיבת המכרזים?",
-];
+// --- שפת ממשק (עברית/אנגלית) ---
+// המתג מחליף את טקסטי הממשק ואת כיוון הדף; תוכן התשובות נכתב ממילא
+// בשפת השאלה (עם גשר תרגום לאחזור — ראו README).
 
-const MODE_LABELS = {
-  llm: "תשובה מנוסחת מתוך ההוראות שבמאגר בלבד",
-  llm_no_answer: "לא נמצאה תשובה בהוראות שבמאגר",
-  extractive: "מוצגים סעיפי המקור עצמם (מודל השפה אינו זמין)",
-  refused: "המודל סירב לענות",
-  no_results: "לא נמצאו סעיפים רלוונטיים במאגר",
+const STRINGS = {
+  he: {
+    subtitle: 'מוצאים תשובה בהוראות התכ"ם, פרק ״התקשרויות ורכישות״ — עם ציטוט הסעיף המדויק וקישור לנוסח המחייב',
+    welcome: 'שלום! אני עוזר שאלות-תשובות על הוראות התכ"ם, ממוקד כרגע בפרק ״התקשרויות ורכישות״ — מכרזים, פטור ממכרז, ערבויות, ספקים ומאגרי מציעים (רשימת ההוראות שבמאגר מופיעה למטה). שאלו בשפה חופשית — אענה בתמציתיות מתוך נוסח ההוראות בלבד, עם ציטוט מדויק של ההוראה והסעיף וקישור לנוסח המחייב. שאלה שאין לה תשובה בהוראות שבמאגר — אומר זאת במפורש במקום לנחש.',
+    placeholder: 'שאלו בשפה חופשית, למשל: מתי מותר להתקשר בפטור ממכרז?',
+    send: "שליחה", thinking: "מאתר את הסעיפים הרלוונטיים...",
+    newChat: "+ שיחה חדשה", sidebarNote: "השיחות נשמרות בדפדפן זה בלבד",
+    deleteChat: "מחיקת השיחה", untitledChat: "שיחה",
+    sources: "מקורות", related: "הוראות קשורות",
+    sitePage: 'לעמוד ההוראה באתר התכ"ם ↗', wordFile: "לנוסח המחייב (Word) ⬇",
+    instructionLabel: "הוראה",
+    cached: " · מהמטמון", restored: " · מהיסטוריית הדפדפן",
+    checkedNote: "נבדקו ההוראות הקרובות ביותר במאגר: ",
+    fbAsk: "האם התשובה עזרה?", fbYes: "👍 כן", fbNo: "👎 לא",
+    fbThanks: "תודה! המשוב נשמר ומשמש לשיפור המערכת.",
+    disclaimer: 'תכ"ם-קל הוא כלי עזר בלבד; הנוסח המחייב הוא נוסח ההוראה באתר התכ"ם.',
+    errorPrefix: "שגיאה: ",
+    status: (h, s) => `במאגר: ${s.documents.length} הוראות מפרק "התקשרויות ורכישות" (${s.documents.join(", ")}) · מודל שפה: ${h.llm_enabled ? "מחובר" : "לא מוגדר (מצב אחזור בלבד)"} · גרסה ${h.version}`,
+    examples: [
+      "מהי תקרת הסכום להתקשרות בהליך רכש מקוצר?",
+      "מה נדרש כדי לאשר התקשרות עם ספק יחיד?",
+      "מתי ניתן לדרוש ערבות ביצוע מספק?",
+      "מי רשאי לפתוח את תיבת המכרזים?",
+    ],
+    modes: {
+      llm: "תשובה מנוסחת מתוך ההוראות שבמאגר בלבד",
+      llm_no_answer: "לא נמצאה תשובה בהוראות שבמאגר",
+      extractive: "מוצגים סעיפי המקור עצמם (מודל השפה אינו זמין)",
+      refused: "המודל סירב לענות",
+      no_results: "לא נמצאו סעיפים רלוונטיים במאגר",
+    },
+  },
+  en: {
+    subtitle: 'Find answers in the TAKAM regulations, "Procurement & Contracting" chapter — with exact section citations and links to the binding text',
+    welcome: 'Hello! I answer questions about the TAKAM regulations (Israel\'s General Accountant financial directives), currently focused on the "Procurement & Contracting" chapter — tenders, exemptions, guarantees, suppliers and vendor lists (the covered instructions are listed below). Ask in free language — I answer concisely from the instruction text only, with an exact citation and a link to the binding version. If the answer is not in the covered instructions — I say so explicitly instead of guessing.',
+    placeholder: "Ask in free language, e.g.: When is a tender exemption allowed?",
+    send: "Send", thinking: "Locating relevant sections...",
+    newChat: "+ New chat", sidebarNote: "Chats are stored in this browser only",
+    deleteChat: "Delete chat", untitledChat: "Chat",
+    sources: "Sources", related: "Related instructions",
+    sitePage: "Instruction page on the TAKAM site ↗", wordFile: "Binding text (Word) ⬇",
+    instructionLabel: "Instruction",
+    cached: " · cached", restored: " · from browser history",
+    checkedNote: "Closest instructions checked: ",
+    fbAsk: "Was this answer helpful?", fbYes: "👍 Yes", fbNo: "👎 No",
+    fbThanks: "Thanks! Your feedback helps improve the system.",
+    disclaimer: "TAKAM-Kal is an assistive tool only; the binding version is the instruction text on the TAKAM site.",
+    errorPrefix: "Error: ",
+    status: (h, s) => `Database: ${s.documents.length} instructions from the Procurement chapter (${s.documents.join(", ")}) · Language model: ${h.llm_enabled ? "connected" : "not configured (retrieval-only mode)"} · v${h.version}`,
+    examples: [
+      "What is the maximum amount for a shortened procurement process?",
+      "What is required to approve a sole-supplier engagement?",
+      "When can a performance guarantee be required from a supplier?",
+      "Who may open the tender box?",
+    ],
+    modes: {
+      llm: "Answer composed strictly from the covered instructions",
+      llm_no_answer: "No answer found in the covered instructions",
+      extractive: "Showing the source sections themselves (language model unavailable)",
+      refused: "The model declined to answer",
+      no_results: "No relevant sections found",
+    },
+  },
 };
+
+let lang = "he";
+try { lang = localStorage.getItem("takam_lang") === "en" ? "en" : "he"; } catch (e) {}
+
+function t(key) { return STRINGS[lang][key]; }
 
 const chatEl = document.getElementById("chat");
 const qEl = document.getElementById("q");
@@ -325,9 +392,9 @@ function addBotText(text, isError) {
 function renderAnswer(data, restored) {
   const node = botShell();
   node.appendChild(el("span", "mode-tag",
-    (MODE_LABELS[data.mode] || data.mode)
-    + (data.cached ? " · מהמטמון" : "")
-    + (restored ? " · מהיסטוריית הדפדפן" : "")));
+    (t("modes")[data.mode] || data.mode)
+    + (data.cached ? t("cached") : "")
+    + (restored ? t("restored") : "")));
   node.appendChild(renderAnswerText(data.answer));
 
   // כשאין תשובה במאגר — לא מציגים "מקורות" והוראות קשורות: הקטעים שאוחזרו
@@ -335,8 +402,7 @@ function renderAnswer(data, restored) {
   if (data.mode === "llm_no_answer") {
     const checked = [...new Set((data.sources || []).map(s => s.instruction_number).filter(Boolean))];
     if (checked.length) {
-      node.appendChild(el("div", "checked-note",
-        "נבדקו ההוראות הקרובות ביותר במאגר: " + checked.join(", ")));
+      node.appendChild(el("div", "checked-note", t("checkedNote") + checked.join(", ")));
     }
     appendFeedback(node, data);
     scrollDown();
@@ -345,20 +411,20 @@ function renderAnswer(data, restored) {
 
   if ((data.sources || []).length) {
     const wrap = el("div", "sources");
-    wrap.appendChild(el("h3", "", "מקורות"));
+    wrap.appendChild(el("h3", "", t("sources")));
     for (const s of data.sources) {
       const src = el("div", "source");
       src.appendChild(el("div", "cite", `[${s.n}] ${s.citation}`));
       src.appendChild(el("div", "snippet", s.snippet + "…"));
       const links = el("div", "source-links");
       if (s.url) {
-        const a = el("a", "", 'לעמוד ההוראה באתר התכ"ם ↗');
+        const a = el("a", "", t("sitePage"));
         a.href = s.url; a.target = "_blank"; a.rel = "noopener";
         links.appendChild(a);
       }
       if (s.file_url) {
         // קישור ישיר לקובץ ההוראה — הנוסח המחייב, נפתח/יורד תמיד
-        const a = el("a", "", "לנוסח המחייב (Word) ⬇");
+        const a = el("a", "", t("wordFile"));
         a.href = s.file_url; a.target = "_blank"; a.rel = "noopener";
         links.appendChild(a);
       }
@@ -370,10 +436,10 @@ function renderAnswer(data, restored) {
 
   if ((data.related || []).length) {
     const wrap = el("div", "related");
-    wrap.appendChild(el("h3", "", "הוראות קשורות"));
+    wrap.appendChild(el("h3", "", t("related")));
     for (const r of data.related) {
       const row = el("div", "rel-item");
-      const label = `הוראה ${r.instruction_number} — ${r.title}`;
+      const label = `${t("instructionLabel")} ${r.instruction_number} — ${r.title}`;
       if (r.url) {
         const a = el("a", "", label);
         a.href = r.url; a.target = "_blank"; a.rel = "noopener";
@@ -393,8 +459,8 @@ function renderAnswer(data, restored) {
 
 function appendFeedback(node, data) {
   const fb = el("div", "feedback");
-  fb.appendChild(el("span", "", "האם התשובה עזרה?"));
-  for (const [label, helpful] of [["👍 כן", true], ["👎 לא", false]]) {
+  fb.appendChild(el("span", "", t("fbAsk")));
+  for (const [label, helpful] of [[t("fbYes"), true], [t("fbNo"), false]]) {
     const btn = el("button", "", label);
     btn.onclick = async () => {
       try {
@@ -404,7 +470,7 @@ function appendFeedback(node, data) {
           body: JSON.stringify({ question: data.question, mode: data.mode, helpful }),
         });
       } catch (e) { /* best-effort */ }
-      fb.replaceChildren(el("span", "thanks", "תודה! המשוב נשמר ומשמש לשיפור המערכת."));
+      fb.replaceChildren(el("span", "thanks", t("fbThanks")));
     };
     fb.appendChild(btn);
   }
@@ -416,8 +482,8 @@ async function ask() {
   if (!question) return;
   qEl.value = "";
   addUser(question);
-  goEl.disabled = true; goEl.textContent = "חושב...";
-  const thinking = addBotText("מאתר את הסעיפים הרלוונטיים...");
+  goEl.disabled = true; goEl.textContent = "...";
+  const thinking = addBotText(t("thinking"));
   try {
     const res = await fetch("/api/ask", {
       method: "POST",
@@ -431,9 +497,9 @@ async function ask() {
     saveToHistory(data);
   } catch (err) {
     thinking.remove();
-    addBotText("שגיאה: " + err.message, true);
+    addBotText(t("errorPrefix") + err.message, true);
   } finally {
-    goEl.disabled = false; goEl.textContent = "שליחה";
+    goEl.disabled = false; goEl.textContent = t("send");
     qEl.focus();
   }
 }
@@ -493,7 +559,7 @@ function renderSidebar() {
     const item = el("div", "chat-item" + (chat.id === activeId ? " active" : ""));
     item.appendChild(el("span", "chat-title", chat.title));
     const del = el("button", "del", "✕");
-    del.title = "מחיקת השיחה";
+    del.title = t("deleteChat");
     del.onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
     item.appendChild(del);
     item.onclick = () => switchChat(chat.id);
@@ -539,7 +605,7 @@ function startNewChat() {
 function saveToHistory(data) {
   let chat = activeChat();
   if (!chat) {   // הודעה ראשונה בשיחה חדשה — נפתחת שיחה בתפריט
-    chat = { id: makeId(), title: (data.question || "שיחה").slice(0, 40), messages: [] };
+    chat = { id: makeId(), title: (data.question || t("untitledChat")).slice(0, 40), messages: [] };
     chats.push(chat);
     activeId = chat.id;
   }
@@ -550,24 +616,61 @@ function saveToHistory(data) {
 }
 
 function showWelcome() {
-  addBotText('שלום! אני עוזר שאלות-תשובות על הוראות התכ"ם, ממוקד כרגע בפרק ״התקשרויות ורכישות״ — מכרזים, פטור ממכרז, ערבויות, ספקים ומאגרי מציעים (רשימת ההוראות שבמאגר מופיעה למטה). שאלו בשפה חופשית — אענה בתמציתיות מתוך נוסח ההוראות בלבד, עם ציטוט מדויק של ההוראה והסעיף וקישור לנוסח המחייב. שאלה שאין לה תשובה בהוראות שבמאגר — אומר זאת במפורש במקום לנחש.');
+  addBotText(t("welcome"));
 }
 
-// אתחול
-const examplesEl = document.getElementById("examples");
-for (const ex of EXAMPLES) {
-  const b = el("button", "", ex);
-  b.onclick = () => { qEl.value = ex; ask(); };
-  examplesEl.appendChild(b);
+// --- החלת שפת הממשק ---
+
+let lastHealth = null, lastStats = null;
+
+function renderStatus() {
+  if (lastHealth && lastStats) {
+    document.getElementById("status").textContent = t("status")(lastHealth, lastStats);
+  }
 }
+
+function renderExamples() {
+  const examplesEl = document.getElementById("examples");
+  examplesEl.replaceChildren();
+  for (const ex of t("examples")) {
+    const b = el("button", "", ex);
+    b.onclick = () => { qEl.value = ex; ask(); };
+    examplesEl.appendChild(b);
+  }
+}
+
+function applyLanguage() {
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
+  document.getElementById("subtitle").textContent = t("subtitle");
+  document.getElementById("disclaimer").textContent = t("disclaimer");
+  document.getElementById("new-chat").textContent = t("newChat");
+  document.querySelector(".sidebar-note").textContent = t("sidebarNote");
+  document.getElementById("lang-toggle").textContent = lang === "he" ? "EN" : "עברית";
+  qEl.placeholder = t("placeholder");
+  goEl.textContent = t("send");
+  renderExamples();
+  renderSidebar();
+  renderStatus();
+  if (!activeChat()) {           // שיחה ריקה — הודעת הפתיחה מוחלפת לשפה החדשה
+    chatEl.replaceChildren();
+    showWelcome();
+  }
+}
+
+document.getElementById("lang-toggle").onclick = () => {
+  lang = lang === "he" ? "en" : "he";
+  try { localStorage.setItem("takam_lang", lang); } catch (e) {}
+  applyLanguage();
+};
+
+// אתחול
 document.getElementById("new-chat").onclick = startNewChat;
 
 loadChats();
+applyLanguage();
 if (activeChat()) {
   switchChat(activeId);        // חזרה לשיחה שהייתה פתוחה
-} else {
-  showWelcome();
-  renderSidebar();
 }
 
 goEl.onclick = ask;
@@ -578,9 +681,8 @@ Promise.all([
   fetch("/api/health").then(r => r.json()),
   fetch("/api/stats").then(r => r.json()),
 ]).then(([h, s]) => {
-  document.getElementById("status").textContent =
-    `במאגר: ${s.documents.length} הוראות מפרק "התקשרויות ורכישות" (${s.documents.join(", ")}) · ` +
-    `מודל שפה: ${h.llm_enabled ? "מחובר" : "לא מוגדר (מצב אחזור בלבד)"} · גרסה ${h.version}`;
+  lastHealth = h; lastStats = s;
+  renderStatus();
 }).catch(() => {});
 </script>
 </body>
