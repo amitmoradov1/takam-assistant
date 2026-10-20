@@ -100,7 +100,12 @@ def _parse_style_numbering(data: bytes) -> dict[str, tuple[str | None, int]]:
 
 class _NumberingState:
     """מוני רמות לכל numId — משחזר את התנהגות Word: קידום ברמה הנוכחית
-    מאפס את כל הרמות העמוקות ממנה."""
+    מאפס את כל הרמות העמוקות ממנה.
+
+    המונים מנוהלים לכל numId בנפרד (ולא לכל abstractNum): כך רשימת
+    ההגדרות בנספח, שמצביעה ל-numId אחר, מתחילה מ-1 מחדש — בדיוק כפי
+    ש-Word מציג אותה. parsing.py מוסיף לסעיפי נספח את אות הנספח כדי
+    שהמספור החוזר לא ייצר ציטוט דו-משמעי."""
 
     def __init__(self, numbering: dict[str, dict[int, _Level]]) -> None:
         self._numbering = numbering
