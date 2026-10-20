@@ -91,6 +91,10 @@
   .source .snippet { color: var(--muted); font-size: .8rem; }
   .source a, .related a { color: var(--gov-blue); font-weight: 600; }
   .source-links { display: flex; gap: 14px; flex-wrap: wrap; }
+  .checked-note {
+    margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px;
+    font-size: .78rem; color: var(--muted);
+  }
   .related { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
   .rel-item { font-size: .84rem; margin-bottom: 4px; white-space: normal; }
   .rel-tag {
@@ -175,6 +179,7 @@ const EXAMPLES = [
 
 const MODE_LABELS = {
   llm: "תשובה מנוסחת מתוך ההוראות שבמאגר בלבד",
+  llm_no_answer: "לא נמצאה תשובה בהוראות שבמאגר",
   extractive: "מוצגים סעיפי המקור עצמם (מודל השפה אינו זמין)",
   refused: "המודל סירב לענות",
   no_results: "לא נמצאו סעיפים רלוונטיים במאגר",
@@ -266,6 +271,19 @@ function renderAnswer(data) {
     (MODE_LABELS[data.mode] || data.mode) + (data.cached ? " · מהמטמון" : "")));
   node.appendChild(renderAnswerText(data.answer));
 
+  // כשאין תשובה במאגר — לא מציגים "מקורות" והוראות קשורות: הקטעים שאוחזרו
+  // הם רק "הקרובים ביותר" טכנית ואינם קשורים לשאלה. מציינים בשקיפות מה נבדק.
+  if (data.mode === "llm_no_answer") {
+    const checked = [...new Set((data.sources || []).map(s => s.instruction_number).filter(Boolean))];
+    if (checked.length) {
+      node.appendChild(el("div", "checked-note",
+        "נבדקו ההוראות הקרובות ביותר במאגר: " + checked.join(", ")));
+    }
+    appendFeedback(node, data);
+    scrollDown();
+    return;
+  }
+
   if ((data.sources || []).length) {
     const wrap = el("div", "sources");
     wrap.appendChild(el("h3", "", "מקורות"));
@@ -310,6 +328,11 @@ function renderAnswer(data) {
     node.appendChild(wrap);
   }
 
+  appendFeedback(node, data);
+  scrollDown();
+}
+
+function appendFeedback(node, data) {
   const fb = el("div", "feedback");
   fb.appendChild(el("span", "", "האם התשובה עזרה?"));
   for (const [label, helpful] of [["👍 כן", true], ["👎 לא", false]]) {
@@ -327,7 +350,6 @@ function renderAnswer(data) {
     fb.appendChild(btn);
   }
   node.appendChild(fb);
-  scrollDown();
 }
 
 async function ask() {

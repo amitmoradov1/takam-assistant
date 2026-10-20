@@ -19,6 +19,36 @@ def test_gold_set_recall(sample_index):
     assert report["recall_at_1"] >= 0.7, report["misses"]
 
 
+def test_answer_mode_detects_no_answer():
+    from takam_assistant.llm import answer_mode
+
+    assert answer_mode("לא נמצאה תשובה לשאלה זו בהוראות שבמאגר.") == "llm_no_answer"
+    assert answer_mode("  לא נמצא מידע רלוונטי במקורות.") == "llm_no_answer"
+    assert answer_mode("תקרת הסכום היא **100,000 ₪** [מקור 1].") == "llm"
+
+
+def test_no_answer_responses_are_cached(sample_index, monkeypatch):
+    """גם 'אין תשובה במאגר' נשמר ב-cache — שאלה חוזרת לא עולה קריאת API."""
+    import takam_assistant.llm as llm
+
+    calls = {"n": 0}
+
+    def fake_llm(question, results):
+        calls["n"] += 1
+        return {"answer": "לא נמצאה תשובה לשאלה זו בהוראות שבמאגר.",
+                "sources": [], "mode": "llm_no_answer"}
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr(llm, "_llm_answer", fake_llm)
+    llm._cache = llm.AnswerCache()
+
+    results = sample_index.search("מי היה ראש הממשלה?", k=3)
+    llm.answer_question("מי היה ראש הממשלה?", results)
+    second = llm.answer_question("מי היה ראש הממשלה?", results)
+    assert calls["n"] == 1
+    assert second["cached"] is True
+
+
 def test_llm_answer_cache(sample_index, monkeypatch):
     """תשובת LLM זהה לשאלה חוזרת מגיעה מה-cache בלי קריאה שנייה לרשת."""
     import takam_assistant.llm as llm
