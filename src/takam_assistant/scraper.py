@@ -109,6 +109,9 @@ def scrape_takam_instruction(code: str) -> dict:
         "chapter": meta.get("firstnamechapter", ""),
         "sub_chapter": meta.get("secondnamechapter", ""),
         "url": f"{TAKAM_BASE}/document/{meta.get('documentcodetext', f'H.{code}')}",
+        # קישור ישיר לקובץ ה-Word המחייב — עובד תמיד, גם אם ניתוב ה-SPA
+        # של האתר לא נוחת על עמוד ההוראה
+        "file_url": download_url,
         "effective_date": effective_date,
         "version": version.get("rtn_versionnumber__c"),
         "text": text,

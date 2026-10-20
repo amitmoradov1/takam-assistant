@@ -82,6 +82,7 @@
   .source .cite { font-weight: 600; }
   .source .snippet { color: var(--muted); font-size: .8rem; }
   .source a, .related a { color: var(--gov-blue); font-weight: 600; }
+  .source-links { display: flex; gap: 14px; flex-wrap: wrap; }
   .related { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
   .rel-item { font-size: .84rem; margin-bottom: 4px; white-space: normal; }
   .rel-tag {
@@ -222,11 +223,19 @@ function renderAnswer(data) {
       const src = el("div", "source");
       src.appendChild(el("div", "cite", `[${s.n}] ${s.citation}`));
       src.appendChild(el("div", "snippet", s.snippet + "…"));
+      const links = el("div", "source-links");
       if (s.url) {
-        const a = el("a", "", 'לנוסח המלא באתר התכ"ם ↗');
+        const a = el("a", "", 'לעמוד ההוראה באתר התכ"ם ↗');
         a.href = s.url; a.target = "_blank"; a.rel = "noopener";
-        src.appendChild(a);
+        links.appendChild(a);
       }
+      if (s.file_url) {
+        // קישור ישיר לקובץ ההוראה — הנוסח המחייב, נפתח/יורד תמיד
+        const a = el("a", "", "לנוסח המחייב (Word) ⬇");
+        a.href = s.file_url; a.target = "_blank"; a.rel = "noopener";
+        links.appendChild(a);
+      }
+      if (links.childNodes.length) src.appendChild(links);
       wrap.appendChild(src);
     }
     node.appendChild(wrap);

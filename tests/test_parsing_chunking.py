@@ -84,6 +84,17 @@ def test_reference_list_sections_get_reduced_weight():
     assert chunks["3.1"].weight == 0.5
 
 
+def test_file_url_carried_to_chunks():
+    # קישור הנוסח המחייב עובר מהמסמך לכל קטע — ממנו ל-API ול-UI
+    doc = TakamDocument.from_dict({
+        "doc_id": "t", "title": "בדיקה", "instruction_number": "9.9.9",
+        "text": "1. כללי\nתוכן.",
+        "file_url": "https://takam.mof.gov.il/api/DocumentSF/DownloadDocument/x/t.docx",
+    })
+    chunks = build_chunks(doc)
+    assert all(c.file_url == doc.file_url for c in chunks)
+
+
 def test_appendix_citation_label():
     text = "נספח ג\n2.1 תהליך האישור."
     doc = TakamDocument(

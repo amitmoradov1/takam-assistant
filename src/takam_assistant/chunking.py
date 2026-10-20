@@ -40,6 +40,7 @@ class Chunk:
     url: str
     effective_date: str
     text: str
+    file_url: str = ""   # קישור ישיר לקובץ ההוראה (הנוסח המחייב)
     # משקל אחזור: קטעים מסעיפי "מסמכים ישימים" (רשימות הפניה שמצטטות את
     # כותרות ההוראות האחרות) מקבלים משקל מופחת — הם כמעט-העתק של שאילתות
     # ("אילו כללים חלים על מאגר מציעים") בלי לשאת תשובה מהותית
@@ -127,6 +128,7 @@ def build_chunks(doc: TakamDocument) -> list[Chunk]:
                 url=doc.url,
                 effective_date=doc.effective_date,
                 text=piece,
+                file_url=doc.file_url,
                 weight=weight,
             ))
     return chunks

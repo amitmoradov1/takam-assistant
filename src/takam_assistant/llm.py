@@ -64,6 +64,7 @@ def _sources_payload(results: list[SearchResult]) -> list[dict]:
             "section_number": r.chunk.section_number,
             "title": r.chunk.doc_title,
             "url": r.chunk.url,
+            "file_url": r.chunk.file_url,
             "score": round(r.score, 2),
             "snippet": r.chunk.text[:300],
         }

@@ -30,6 +30,8 @@ def test_ask_returns_answer_with_sources(client):
     assert data["sources"]
     assert data["sources"][0]["instruction_number"] == "7.12.3"
     assert "7.12.3" in data["answer"]
+    # שדות הקישור קיימים תמיד בתשובה (ריקים בנתוני הדוגמה הסינתטיים)
+    assert "url" in data["sources"][0] and "file_url" in data["sources"][0]
 
 
 def test_ask_validates_input(client):

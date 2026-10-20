@@ -37,6 +37,7 @@ class TakamDocument:
     url: str
     effective_date: str
     text: str
+    file_url: str = ""         # קישור ישיר לקובץ ההוראה (הנוסח המחייב)
     sections: list[Section] = field(default_factory=list)
 
     @classmethod
@@ -49,6 +50,7 @@ class TakamDocument:
             url=raw.get("url", ""),
             effective_date=raw.get("effective_date", ""),
             text=raw["text"],
+            file_url=raw.get("file_url", ""),
         )
         doc.sections = parse_sections(doc.text)
         return doc

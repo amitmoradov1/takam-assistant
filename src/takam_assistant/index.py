@@ -68,7 +68,8 @@ class BM25Index:
                 refs = self.doc_refs.setdefault(chunk.instruction_number, set())
                 refs.update(extract_references(chunk.text, chunk.instruction_number))
                 self._doc_info.setdefault(chunk.instruction_number,
-                                          {"title": chunk.doc_title, "url": chunk.url})
+                                          {"title": chunk.doc_title, "url": chunk.url,
+                                           "file_url": chunk.file_url})
         self._avg_len = (sum(self._doc_len) / len(self._doc_len)) if chunks else 0.0
 
     def search(self, query: str, k: int = 5) -> list[SearchResult]:
@@ -130,7 +131,8 @@ class BM25Index:
             seen.add(number)
             info = self._doc_info[number]
             related.append({"instruction_number": number, "title": info["title"],
-                            "url": info["url"], "relation": relation})
+                            "url": info["url"], "file_url": info.get("file_url", ""),
+                            "relation": relation})
 
         for number in instruction_numbers:
             for ref in sorted(self.doc_refs.get(number, ())):
